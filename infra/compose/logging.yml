@@ -1,0 +1,48 @@
+services:
+  loki:
+    image: docker.m.daocloud.io/grafana/loki:3.4.3@sha256:5fe9fa99e9a747297cdf0239a5b25d192d8f668bd6505b09beef4dffcab5aac2
+    container_name: loki
+    restart: always
+    networks:
+      - gitea
+    mem_limit: 384m
+    volumes:
+      - /root/infra/loki/loki.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command:
+      - "-config.file=/etc/loki/config.yml"
+    # 不对外暴露 3100，只给 Grafana / Promtail 内网用
+
+  promtail-sd:
+    build:
+      context: ./python
+    image: infra-python:3.12
+    pull_policy: build
+    container_name: promtail-sd
+    restart: always
+    mem_limit: 32m
+    network_mode: none
+    volumes:
+      - /root/infra/promtail/sd.py:/opt/infra/sd.py:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail-sd:/etc/promtail/sd
+    command: ["python3", "/opt/infra/sd.py", "--loop", "15"]
+
+  promtail:
+    image: docker.m.daocloud.io/grafana/promtail:3.4.3@sha256:168eb785ce3603fa1bfdd9d44840d3fe81e644bf9d3c64a0f4a19e993c5ff050
+    container_name: promtail
+    restart: always
+    depends_on:
+      - loki
+      - promtail-sd
+    networks:
+      - gitea
+    mem_limit: 128m
+    volumes:
+      - /root/infra/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail-data:/promtail
+      - promtail-sd:/etc/promtail/sd:ro
+    command:
+      - "-config.file=/etc/promtail/promtail.yml"
+    # 名单由 promtail-sd（镜像 infra-python）写入共享卷。不挂 docker.sock。

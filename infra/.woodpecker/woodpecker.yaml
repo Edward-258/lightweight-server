@@ -1,0 +1,57 @@
+# CI：policy / validate；PR 与非 main 的 healthcheck 打现网。
+# 这个文件不能挂 volumes：仓库未 Trusted 时 lint 会整单失败，Gitea 要求 ci/woodpecker/*/woodpecker。
+# CD 在 .woodpecker/cd.yaml，仅 main push。
+when:
+  - event: push
+  - event: pull_request
+
+clone:
+  git:
+    image: docker.m.daocloud.io/woodpeckerci/plugin-git:2.10.0@sha256:0f06b03ec33137b556c77538563f66c400339052d0c5199d4c3ad1a2a37e1964
+    pull: false
+    settings:
+      use-ssh: true
+      remote-ssh: ssh://git@gitea:22/admin/infra.git
+      ssh-key-private:
+        from_secret: ci_clone_ssh_key
+      ssh-host-key: ${GITEA_SSH_HOST_KEY}
+      partial: false
+      depth: 50
+      fetch-target-branch: true
+      target-branch: main
+
+variables:
+  - &python infra-python:3.12
+
+steps:
+  - name: policy
+    image: *python
+    pull: false
+    environment:
+      SSH_KEY:
+        from_secret: ci_clone_ssh_key
+    commands:
+      - python3 scripts/check_scope.py
+
+  - name: validate
+    image: *python
+    pull: false
+    commands:
+      - python3 scripts/ci_validate.py
+      - python3 -m unittest scripts/test_cd_compose.py scripts/test_cd_state.py
+
+  - name: healthcheck
+    image: *python
+    pull: false
+    depends_on:
+      - policy
+      - validate
+    when:
+      - event: pull_request
+      - event: push
+        branch:
+          exclude: [main]
+    environment:
+      HEALTHCHECK_BASE_URL: https://nginx
+    commands:
+      - python3 scripts/healthcheck.py

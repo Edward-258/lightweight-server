@@ -1,0 +1,43 @@
+services:
+  node_exporter:
+    image: docker.m.daocloud.io/prom/node-exporter:latest@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
+    container_name: node_exporter
+    restart: always
+    pid: host
+    networks:
+      - gitea
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /var/lib/node_exporter/textfile:/var/lib/node_exporter/textfile:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      - "--collector.textfile.directory=/var/lib/node_exporter/textfile"
+
+  prometheus:
+    image: docker.m.daocloud.io/prom/prometheus:latest@sha256:508729e0e2d18e11fd742a5a5ca70e557b940a93948c3c95fd0123a6fd538b69
+    container_name: prometheus
+    restart: always
+    depends_on:
+      - node_exporter
+      - alertmanager
+    networks:
+      - gitea
+    volumes:
+      - /root/infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /root/infra/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    # 刮共享网上的 woodpecker-server:9001，不读 token；secret 只挂在 WP compose。
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+      - "--web.external-url=https://example.com/prometheus/"
+      - "--web.route-prefix=/"
+    ports:
+      - "127.0.0.1:9090:9090"

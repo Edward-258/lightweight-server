@@ -1,0 +1,249 @@
+{
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "11.6.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "loki",
+      "name": "Loki",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Woodpecker Health",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red"}, {"color": "green", "value": 1}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value"
+      },
+      "targets": [{"editorMode": "code", "expr": "up{job=\"woodpecker\"}", "instant": true, "refId": "A"}],
+      "title": "Metrics Target",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red"}, {"color": "green", "value": 1}]}, "unit": "short"},
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"editorMode": "code", "expr": "woodpecker_worker_count", "instant": true, "refId": "A"}],
+      "title": "Online Workers",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "orange", "value": 1}, {"color": "red", "value": 10}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"editorMode": "code", "expr": "woodpecker_pending_steps", "instant": true, "refId": "A"}],
+      "title": "Pending Steps",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "orange", "value": 1}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "id": 5,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"editorMode": "code", "expr": "woodpecker_running_steps", "instant": true, "refId": "A"}],
+      "title": "Running Steps",
+      "type": "stat"
+    },
+    {
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "id": 6,
+      "title": "Pipeline Activity",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "mappings": [], "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "id": 7,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [
+        {"editorMode": "code", "expr": "woodpecker_pending_steps", "legendFormat": "pending", "refId": "A"},
+        {"editorMode": "code", "expr": "woodpecker_waiting_steps", "legendFormat": "waiting", "refId": "B"},
+        {"editorMode": "code", "expr": "woodpecker_running_steps", "legendFormat": "running", "refId": "C"}
+      ],
+      "title": "Queue and Running Steps",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "mappings": [], "unit": "ops"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "id": 8,
+      "options": {"legend": {"calcs": ["sum"], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [{"editorMode": "code", "expr": "sum by (status) (rate(woodpecker_pipeline_count{pipeline=\"total\"}[15m]))", "legendFormat": "{{status}}", "refId": "A"}],
+      "title": "Pipeline Rate by Status",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "id": 9,
+      "title": "CD Deployment Signals",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "red", "value": 3}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 15},
+      "id": 10,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "value"},
+      "targets": [{"editorMode": "code", "expr": "sum(increase(woodpecker_step_failures_total{workflow=~\"(?i)(cd|deploy|deployment|woodpecker)\",step=~\"(?i)(deploy|deployment|release|publish)\"}[15m]))", "instant": true, "refId": "A"}],
+      "title": "CD Deployment Failures (15m)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "mappings": [], "unit": "ops"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 15},
+      "id": 11,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [{"editorMode": "code", "expr": "sum(rate(woodpecker_step_failures_total{workflow=~\"(?i)(cd|deploy|deployment|woodpecker)\",step=~\"(?i)(deploy|deployment|release|publish)\"}[15m]))", "legendFormat": "CD deployment failures", "refId": "A"}],
+      "title": "CD Deployment Failure Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 15},
+      "id": 12,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
+      "targets": [{"editorMode": "code", "expr": "ALERTS{service=\"woodpecker\",alertstate=\"firing\"}", "legendFormat": "{{alertname}}", "refId": "A"}],
+      "title": "Active Woodpecker Alerts",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 20},
+      "id": 13,
+      "title": "Woodpecker Logs",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${ds_loki}"},
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 21},
+      "id": 14,
+      "options": {
+        "deduplication": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLines": false
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "{job=~\"woodpecker-server|woodpecker-agent\"}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Server / Agent Logs",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["woodpecker", "ci", "cd"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "includeAll": false,
+        "label": "Datasource",
+        "name": "ds_prometheus",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "includeAll": false,
+        "label": "Loki",
+        "name": "ds_loki",
+        "options": [],
+        "query": "loki",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {"from": "now-15m", "to": "now"},
+  "timezone": "browser",
+  "title": "Woodpecker CI/CD Overview",
+  "uid": "woodpecker-cicd",
+  "version": 1
+}

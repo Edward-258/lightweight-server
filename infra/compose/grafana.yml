@@ -1,0 +1,25 @@
+services:
+  grafana:
+    image: docker.m.daocloud.io/grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb
+    container_name: grafana
+    restart: always
+    depends_on:
+      - prometheus
+    networks:
+      - gitea
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_SERVER_ROOT_URL=https://example.com/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      # 常开板 10s；书签 refresh=5s 会被夹到 10s。首页 Node Overview。
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=10s
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/json/node-overview.json
+      # Prometheus 看板不需要 Live；关掉避免 /api/live/ws 反复重连。
+      - GF_LIVE_MAX_CONNECTIONS=0
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - /root/infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    # 不要写 ports:，3000 只给 nginx 内网用

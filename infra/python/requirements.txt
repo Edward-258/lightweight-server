@@ -1,0 +1,3 @@
+# 所有使用 infra-python 镜像的容器共用这里的库。
+# sd.py 仍只用标准库；ci_validate.py 需要 PyYAML，改版本后要重新 build infra-python:3.12。
+PyYAML==6.0.2

@@ -1,0 +1,22 @@
+include:
+  - path: compose/core.yml
+    project_directory: .
+  - path: compose/alerting.yml
+    project_directory: .
+  - path: compose/metrics.yml
+    project_directory: .
+  - path: compose/logging.yml
+    project_directory: .
+  - path: compose/grafana.yml
+    project_directory: .
+
+networks:
+  gitea:
+    name: infra_gitea
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  promtail-data:
+  promtail-sd:

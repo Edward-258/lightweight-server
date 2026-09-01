@@ -1,0 +1,114 @@
+groups:
+  - name: node_alerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务掉线: {{ $labels.instance }}"
+          description: "{{ $labels.job }} / {{ $labels.instance }} 已掉线超过 1 分钟"
+
+      - alert: HighCPU
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高: {{ $labels.instance }}"
+          description: "CPU 持续 5 分钟超过 85%，当前值: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighMemory
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高: {{ $labels.instance }}"
+          description: "内存持续 5 分钟超过 90%，当前值: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: DiskAlmostFull
+        expr: 100 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足: {{ $labels.instance }}"
+          description: "根分区磁盘使用率超过 85%，当前值: {{ $value | printf \"%.1f\" }}%"
+
+  - name: woodpecker_alerts
+    rules:
+      - alert: WoodpeckerMetricsDown
+        expr: up{job="woodpecker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: woodpecker
+          category: infrastructure
+        annotations:
+          summary: "Woodpecker 指标不可用"
+          description: "Prometheus 连续 2 分钟无法采集 Woodpecker 指标。"
+
+      - alert: WoodpeckerNoWorker
+        expr: woodpecker_worker_count < 1
+        for: 2m
+        labels:
+          severity: critical
+          service: woodpecker
+          category: infrastructure
+        annotations:
+          summary: "Woodpecker 没有在线 Worker"
+          description: "Woodpecker Worker 数量连续 2 分钟小于 1，CI/CD 无法执行。"
+
+      - alert: WoodpeckerQueueStalled
+        expr: woodpecker_pending_steps > 0 and woodpecker_running_steps == 0 and woodpecker_worker_count > 0
+        for: 3m
+        labels:
+          severity: warning
+          service: woodpecker
+          category: infrastructure
+        annotations:
+          summary: "Woodpecker 队列疑似阻塞"
+          description: "存在等待执行的步骤，但连续 3 分钟没有运行中的步骤。"
+
+      # CD steps are named deploy-*. Workflow file is still .woodpecker.yaml → workflow="woodpecker".
+      # policy / validate / healthcheck do not match the step regex.
+      - alert: WoodpeckerCDPipelineFailures
+        expr: sum(increase(woodpecker_step_failures_total{workflow=~"(?i)(cd|deploy|deployment|woodpecker)",step=~"(?i)(deploy|deployment|release|publish)"}[15m])) >= 3
+        for: 5m
+        labels:
+          severity: warning
+          service: woodpecker
+          category: cd
+        annotations:
+          summary: "CD 部署流水线连续失败"
+          description: "匹配的 CD 部署步骤在 15 分钟内失败至少 3 次，并持续 5 分钟。"
+
+  # Overview 热路径。evaluation_interval=15s；range 固定 1m（不能用 Grafana 的 $__rate_interval）。
+  # 看板 10s 刷新只读这些序列。告警仍用上面的原始 rate[5m]。
+  - name: node_overview
+    rules:
+      - record: instance:node_cpu_busy:ratio
+        expr: 1 - avg by (instance, job) (rate(node_cpu_seconds_total{mode="idle"}[1m]))
+
+      - record: instance:node_cpu_mode:rate
+        expr: sum by (instance, job, mode) (rate(node_cpu_seconds_total{mode!="idle"}[1m]))
+
+      - record: instance:node_memory_used:ratio
+        expr: 1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+
+      - record: instance:node_memory_used_bytes
+        expr: node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+
+      - record: instance:node_filesystem_root_used:ratio
+        expr: 1 - (
+            node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay|ramfs"}
+            / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay|ramfs"}
+          )
+
+      - record: instance:node_network_receive_bytes:rate
+        expr: rate(node_network_receive_bytes_total{device!~"lo|veth.*|br-.*|docker.*|tunl0"}[1m])
+
+      - record: instance:node_network_transmit_bytes:rate
+        expr: rate(node_network_transmit_bytes_total{device!~"lo|veth.*|br-.*|docker.*|tunl0"}[1m])

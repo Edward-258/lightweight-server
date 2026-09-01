@@ -1,0 +1,405 @@
+{
+  "editable": false,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Woodpecker CI/CD",
+      "type": "link",
+      "url": "/grafana/d/woodpecker-cicd/woodpecker-ci-cd-overview"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "title": "At a glance",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "description": "All cores averaged, idle excluded",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "orange", "value": 70},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 5, "x": 0, "y": 1},
+      "id": 2,
+      "options": {
+        "minVizHeight": 75,
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * instance:node_cpu_busy:ratio{instance=\"$node\",job=\"$job\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Busy",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "description": "load1 / CPU cores. 100% means load1 equals core count.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "orange", "value": 85},
+              {"color": "red", "value": 95}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 5, "x": 5, "y": 1},
+      "id": 11,
+      "options": {
+        "minVizHeight": 75,
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "scalar(node_load1{instance=\"$node\",job=\"$job\"}) * 100 / count(count(node_cpu_seconds_total{instance=\"$node\",job=\"$job\"}) by (cpu))",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Sys Load",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "orange", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 5, "x": 10, "y": 1},
+      "id": 3,
+      "options": {
+        "minVizHeight": 75,
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * instance:node_memory_used:ratio{instance=\"$node\",job=\"$job\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Memory Used",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "description": "Host root filesystem",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "orange", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 5, "x": 15, "y": 1},
+      "id": 4,
+      "options": {
+        "minVizHeight": 75,
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * instance:node_filesystem_root_used:ratio{instance=\"$node\",job=\"$job\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Disk / Used",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green"},
+              {"color": "orange", "value": 1.5},
+              {"color": "red", "value": 2}
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1},
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value"
+      },
+      "targets": [
+        {"editorMode": "code", "expr": "node_load1{instance=\"$node\",job=\"$job\"}", "instant": true, "legendFormat": "1m", "refId": "A"},
+        {"editorMode": "code", "expr": "node_load5{instance=\"$node\",job=\"$job\"}", "instant": true, "legendFormat": "5m", "refId": "B"},
+        {"editorMode": "code", "expr": "node_load15{instance=\"$node\",job=\"$job\"}", "instant": true, "legendFormat": "15m", "refId": "C"}
+      ],
+      "title": "Load 1 / 5 / 15",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "id": 6,
+      "title": "Last 15 minutes",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1,
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "normal"}
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "id": 7,
+      "maxDataPoints": 90,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "instance:node_cpu_mode:rate{instance=\"$node\",job=\"$job\"}",
+          "legendFormat": "{{mode}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU by mode",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "fillOpacity": 15, "lineWidth": 1, "spanNulls": false},
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "id": 8,
+      "maxDataPoints": 90,
+      "options": {
+        "legend": {"calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "instance:node_memory_used_bytes{instance=\"$node\",job=\"$job\"}",
+          "legendFormat": "used",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "node_memory_MemAvailable_bytes{instance=\"$node\",job=\"$job\"}",
+          "legendFormat": "available",
+          "refId": "B"
+        }
+      ],
+      "title": "Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false},
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+      "id": 9,
+      "maxDataPoints": 90,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "instance:node_network_receive_bytes:rate{instance=\"$node\",job=\"$job\"}",
+          "legendFormat": "rx {{device}}",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "instance:node_network_transmit_bytes:rate{instance=\"$node\",job=\"$job\"}",
+          "legendFormat": "tx {{device}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Network",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "spanNulls": false},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+      "id": 10,
+      "maxDataPoints": 90,
+      "options": {
+        "legend": {"calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * instance:node_filesystem_root_used:ratio{instance=\"$node\",job=\"$job\"}",
+          "legendFormat": "/",
+          "refId": "A"
+        }
+      ],
+      "title": "Disk / used",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["node", "overview"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "includeAll": false,
+        "label": "Datasource",
+        "name": "ds_prometheus",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+        "includeAll": false,
+        "label": "Job",
+        "name": "job",
+        "query": {"query": "label_values(node_uname_info, job)", "refId": "job"},
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {"type": "prometheus", "uid": "${ds_prometheus}"},
+        "includeAll": false,
+        "label": "Instance",
+        "name": "node",
+        "query": {"query": "label_values(node_uname_info{job=\"$job\"}, instance)", "refId": "node"},
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {"from": "now-15m", "to": "now"},
+  "timezone": "browser",
+  "title": "Node Overview",
+  "uid": "node-overview"
+}

@@ -1,0 +1,96 @@
+# admin/infra：忽略本地密钥和运行时文件；*.example 模板要进 Git。
+# 初始化：cp config/app.ini.example config/app.ini
+
+# --- 密钥与本地配置 ----------------------------------------------------------
+# 真正的 Gitea 配置（compose 挂的是 config/app.ini）。模板继续入库。
+config/app.ini
+config/app.ini.*
+!config/app.ini.example
+
+.env
+.env.*
+!.env.example
+
+# Legacy worktree state; active CD state lives outside the repository.
+.cd-release.json
+.cd-git.lock
+.cd-deploy.lock
+.cd-backup/
+
+# Promtail 的 file_sd 写在 promtail-sd 卷里；若落到仓库树则忽略
+promtail/sd/containers.json
+promtail/sd/containers.json.tmp
+
+# Alertmanager：渲染后的 SMTP 配置（来源是 .env + alertmanager.yml.tpl）
+alertmanager/smtp_password
+alertmanager/alertmanager.yml
+alertmanager/alertmanager.runtime.yml
+
+# 习惯放密钥的目录（忽略内容，保留目录本身）
+*.secret
+/secrets/*
+!/secrets/*.example
+
+# --- 证书 / SSH 密钥 --------------------------------------------------------
+*.pem
+*.key
+*.p12
+*.pfx
+!*.example.pem
+!*.example.key
+!*.pub
+
+id_rsa
+id_ed25519
+id_ecdsa
+migration_key
+deploy_key
+authorized_keys
+!authorized_keys.example
+
+# 若仓库里出现 ACME / certbot 目录则忽略
+letsencrypt/
+certbot/
+
+# --- Docker / runner 本地状态 -----------------------------------------------
+docker-compose.override.yml
+compose.override.yml
+.docker/
+
+.runner
+runner-data/
+runner2-data/
+
+# --- 运行时数据和备份（不要当配置入库） --------------------------------------
+gitea-data/
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.sql.gz
+backup/
+backups/
+*.bak
+*.bak.*
+docker-compose.yml.bak*
+*.dump
+
+# 误把 vim 的 :set number 存成文件名
+set number
+
+# --- 杂项 -------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.orig
+__pycache__/
+node_modules/
+.cache/
+tmp/
+temp/

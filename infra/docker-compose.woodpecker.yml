@@ -1,0 +1,85 @@
+# Woodpecker 控制面。与业务栈分项目，共用网络 infra_gitea。
+# 先起业务 compose（会创建该网），再：
+#   docker compose -p woodpecker -f docker-compose.woodpecker.yml --project-directory /root/infra up -d
+# CD 不 up 这份文件。卷名钉成现网 infra_*，避免新项目名造出空卷。
+
+networks:
+  gitea:
+    external: true
+    name: infra_gitea
+
+services:
+  woodpecker-server:
+    image: docker.m.daocloud.io/woodpeckerci/woodpecker-server:v3.17.0@sha256:23bdea05bc35ce150d9ba768889c3f00b3a618785c85b268e8fbf9b06d5a21e0
+    container_name: woodpecker-server
+    restart: always
+    networks:
+      - gitea
+    mem_limit: 256m
+    # 不挂 env_file：compose 只把下面点名的 ${VAR} 从主机 .env 插进来，SMTP/Grafana 进不了这个容器。
+    # gitea 在另一份 compose 里；靠共享网容器名，不要 depends_on。
+    environment:
+      - WOODPECKER_OPEN=false
+      - WOODPECKER_ADMIN=admin
+      - WOODPECKER_HOST=https://example.com/woodpecker
+      - WOODPECKER_GITEA=true
+      - WOODPECKER_GITEA_URL=https://example.com/gitea
+      - WOODPECKER_GITEA_CLIENT=${WOODPECKER_GITEA_CLIENT}
+      - WOODPECKER_GITEA_SECRET=${WOODPECKER_GITEA_SECRET}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_GRPC_SECRET=${WOODPECKER_GRPC_SECRET}
+      # 主 HTTP 口上鉴权 /metrics 用。Prometheus 刮的是下面这个未鉴权 9001。
+      - WOODPECKER_PROMETHEUS_AUTH_TOKEN_FILE=/run/secrets/woodpecker-prometheus-token
+      - WOODPECKER_METRICS_SERVER_ADDR=:9001
+      # .env → 流水线 ${GITEA_SSH_HOST_KEY}。格式 key:value，值里不要有逗号。
+      - "WOODPECKER_ENVIRONMENT=GITEA_SSH_HOST_KEY:${GITEA_SSH_HOST_KEY}"
+      - WOODPECKER_SERVER_ADDR=:8000
+      - WOODPECKER_GRPC_ADDR=:9000
+      - SSL_CERT_FILE=/etc/ssl/ecs-selfsigned.pem
+      # clone 默认走 docker.io 会 404；DaoCloud 上已有 2.10.0，ECS 本地也已 pull
+      - WOODPECKER_DEFAULT_CLONE_PLUGIN=docker.m.daocloud.io/woodpeckerci/plugin-git:2.10.0@sha256:0f06b03ec33137b556c77538563f66c400339052d0c5199d4c3ad1a2a37e1964
+      - WOODPECKER_DEFAULT_CLONE_IMAGE=docker.m.daocloud.io/woodpeckerci/plugin-git:2.10.0@sha256:0f06b03ec33137b556c77538563f66c400339052d0c5199d4c3ad1a2a37e1964
+      - WOODPECKER_PLUGINS_TRUSTED_CLONE=docker.m.daocloud.io/woodpeckerci/plugin-git:2.10.0@sha256:0f06b03ec33137b556c77538563f66c400339052d0c5199d4c3ad1a2a37e1964,docker.m.daocloud.io/woodpeckerci/plugin-git:2.10.0,docker.m.daocloud.io/woodpeckerci/plugin-git
+    extra_hosts:
+      - "example.com:host-gateway"
+    volumes:
+      - woodpecker-data:/var/lib/woodpecker
+      - /etc/ssl/selfsigned/fullchain.pem:/etc/ssl/ecs-selfsigned.pem:ro
+    secrets:
+      - source: woodpecker-prometheus-token
+        target: woodpecker-prometheus-token
+        mode: 0444
+    # 8000 HTTP（nginx）/ 9000 gRPC / 9001 metrics：都只在 docker 网，不映射公网
+
+  woodpecker-agent:
+    image: docker.m.daocloud.io/woodpeckerci/woodpecker-agent:v3.17.0@sha256:03c7b1f7b2156d00fdf4c30da77ac2bfe88d09ed818ea4627f82835ad81a98c9
+    container_name: woodpecker-agent
+    restart: always
+    depends_on:
+      - woodpecker-server
+    networks:
+      - gitea
+    mem_limit: 128m
+    environment:
+      - WOODPECKER_SERVER=woodpecker-server:9000
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_BACKEND=docker
+      # 流水线容器加入共享网 infra_gitea，clone 才能 SSH 到 gitea:22
+      - WOODPECKER_BACKEND_DOCKER_NETWORK=infra_gitea
+    volumes:
+      # 3.17 要把 agent ID 写进 /etc/woodpecker/agent.conf，否则每次重建都会当成新 agent
+      - woodpecker-agent-config:/etc/woodpecker
+      # 流水线用 sock 起任务容器；CD 只 compose up 业务栈，绝不带这份文件
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "example.com:host-gateway"
+
+volumes:
+  woodpecker-data:
+    name: infra_woodpecker-data
+  woodpecker-agent-config:
+    name: infra_woodpecker-agent-config
+
+secrets:
+  woodpecker-prometheus-token:
+    file: ${WOODPECKER_PROMETHEUS_TOKEN_FILE}

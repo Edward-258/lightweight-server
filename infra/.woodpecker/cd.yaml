@@ -1,0 +1,71 @@
+# CD：仅 main push。依赖 CI workflow「woodpecker」。
+# deploy-infra 按桌面 Infra-CD-DAG.png 的依赖波次串行编排；Woodpecker server/agent 不部署、不回滚。
+# 失败：当前波次 checkout 上一成功 SHA 的路径再 compose up；之前成功波次保留。
+when:
+  - event: push
+    branch: main
+
+depends_on:
+  - woodpecker
+
+clone:
+  git:
+    image: docker.m.daocloud.io/woodpeckerci/plugin-git:2.10.0@sha256:0f06b03ec33137b556c77538563f66c400339052d0c5199d4c3ad1a2a37e1964
+    pull: false
+    settings:
+      use-ssh: true
+      remote-ssh: ssh://git@gitea:22/admin/infra.git
+      ssh-key-private:
+        from_secret: ci_clone_ssh_key
+      ssh-host-key: ${GITEA_SSH_HOST_KEY}
+      partial: false
+      depth: 50
+      fetch-target-branch: true
+      target-branch: main
+
+variables:
+  - &python infra-python:3.12
+  - &cd_volumes
+    - /root/infra:/root/infra
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /var/lib/infra-cd:/var/lib/infra-cd
+
+steps:
+  - name: deploy-host
+    image: *python
+    pull: false
+    volumes: *cd_volumes
+    environment:
+      SSH_KEY:
+        from_secret: ci_clone_ssh_key
+      INFRA_ROOT: /root/infra
+      CD_STATE_ROOT: /var/lib/infra-cd
+    commands:
+      - python3 scripts/host_apply.py
+
+  - name: deploy-infra
+    image: *python
+    pull: false
+    depends_on:
+      - deploy-host
+    volumes: *cd_volumes
+    environment:
+      INFRA_ROOT: /root/infra
+      CD_STATE_ROOT: /var/lib/infra-cd
+    commands:
+      - python3 scripts/cd_compose.py deploy-waves
+
+  - name: healthcheck
+    image: *python
+    pull: false
+    depends_on:
+      - deploy-infra
+    volumes: *cd_volumes
+    environment:
+      HEALTHCHECK_BASE_URL: https://nginx
+      INFRA_ROOT: /root/infra
+      CD_STATE_ROOT: /var/lib/infra-cd
+    commands:
+      - python3 scripts/healthcheck.py || { python3 scripts/cd_compose.py healthcheck-rollback; exit 1; }
+      - python3 scripts/cd_compose.py mark-healthcheck
+      - python3 scripts/host_apply.py --finalize

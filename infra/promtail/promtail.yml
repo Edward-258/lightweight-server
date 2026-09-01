@@ -1,0 +1,22 @@
+# Promtail：采 nginx-proxy、gitea 和 Woodpecker server/agent。
+# 采集目标由 promtail-sd 生成（infra-python 镜像里跑 sd.py，不挂 docker.sock）。
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+positions:
+  filename: /promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker-json
+    file_sd_configs:
+      - files:
+          - /etc/promtail/sd/*.json
+        refresh_interval: 15s
+    pipeline_stages:
+      - docker: {}
