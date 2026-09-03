@@ -1,6 +1,6 @@
 # CD：仅 main push。依赖 CI workflow「woodpecker」。
 # deploy-infra 按桌面 Infra-CD-DAG.png 的依赖波次串行编排；Woodpecker server/agent 不部署、不回滚。
-# 失败：当前波次 checkout 上一成功 SHA 的路径再 compose up；之前成功波次保留。
+# 失败：已触碰波次按 DAG 逆序 checkout 上一成功 SHA 再 force-recreate。
 when:
   - event: push
     branch: main
@@ -53,7 +53,7 @@ steps:
       INFRA_ROOT: /root/infra
       CD_STATE_ROOT: /var/lib/infra-cd
     commands:
-      - python3 scripts/cd_compose.py deploy-waves
+      - python3 scripts/cd_compose.py deploy
 
   - name: healthcheck
     image: *python
@@ -66,6 +66,6 @@ steps:
       INFRA_ROOT: /root/infra
       CD_STATE_ROOT: /var/lib/infra-cd
     commands:
-      - python3 scripts/healthcheck.py || { python3 scripts/cd_compose.py healthcheck-rollback; exit 1; }
+      - python3 scripts/healthcheck.py || { python3 scripts/cd_compose.py rollback --healthcheck; exit 1; }
       - python3 scripts/cd_compose.py mark-healthcheck
       - python3 scripts/host_apply.py --finalize

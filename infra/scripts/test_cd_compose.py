@@ -8,14 +8,9 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cd_compose import (
-    affected_services,
-    decode_touched_waves,
-    encode_touched_waves,
-    rollback_order,
-    service_action,
-    service_actions,
-)
+from cd.catalog import UNITS, WAVES, affected_services, service_action, service_actions
+from cd.cli import normalize_argv
+from cd.orchestrate import decode_touched_waves, encode_touched_waves, rollback_order, select_waves
 
 
 class RefreshDecisionTests(unittest.TestCase):
@@ -120,6 +115,42 @@ class RefreshDecisionTests(unittest.TestCase):
         waves = [("core", ("gitea",))]
         encoded = encode_touched_waves(waves)
         self.assertEqual(decode_touched_waves(encoded), waves)
+
+    def test_reload_is_declared_on_the_unit_not_hardcoded_by_name(self) -> None:
+        self.assertTrue(UNITS["nginx"].reload_exec)
+        self.assertEqual(UNITS["nginx"].container, "nginx-proxy")
+        self.assertTrue(UNITS["prometheus"].reload_exec)
+        self.assertEqual(UNITS["alertmanager"].reload_signal, "HUP")
+        self.assertFalse(UNITS["grafana"].reload_exec)
+
+    def test_legacy_argv_rewrites_to_subcommands(self) -> None:
+        self.assertEqual(
+            normalize_argv(["cd_compose.py", "deploy-waves"]),
+            ["cd_compose.py", "deploy"],
+        )
+        self.assertEqual(
+            normalize_argv(["cd_compose.py", "nginx", "--dry-run"]),
+            ["cd_compose.py", "deploy", "nginx", "--dry-run"],
+        )
+        self.assertEqual(
+            normalize_argv(["cd_compose.py", "nginx", "prometheus"]),
+            ["cd_compose.py", "deploy", "nginx", "prometheus"],
+        )
+        self.assertEqual(
+            normalize_argv(["cd_compose.py", "--root", "/x", "healthcheck-rollback"]),
+            ["cd_compose.py", "--root", "/x", "rollback", "--healthcheck"],
+        )
+        self.assertEqual(
+            normalize_argv(["cd_compose.py", "deploy", "nginx"]),
+            ["cd_compose.py", "deploy", "nginx"],
+        )
+
+    def test_select_waves_filters_units_but_keeps_dag_order(self) -> None:
+        self.assertEqual(
+            select_waves(("nginx", "prometheus"), None),
+            (("core-proxy", ("nginx",)), ("dependent", ("prometheus",))),
+        )
+        self.assertEqual(select_waves(None, ("alerting",)), (WAVES[2],))
 
 
 if __name__ == "__main__":
