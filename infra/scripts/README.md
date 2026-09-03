@@ -10,7 +10,7 @@ CI / CD 脚本（进仓库、由 Woodpecker 用 infra-python 跑）：
 - `healthcheck.py`：通过 Nginx 反向代理检查服务入口
 - `cd_state.py`：外置成功基线 `/var/lib/infra-cd/baseline.json`、发布事务 `/var/lib/infra-cd/transaction.json` 和部署锁 `/var/lib/infra-cd/deploy.lock`；基线只在成功 finalize 后原子更新，Git 锁仍为 `/root/infra/.cd-git.lock`
 - `host_apply.py`：fetch 本趟 SHA，读取并固定外置 baseline，创建发布事务；checkout `docker-compose.yml`、`docker-compose.woodpecker.yml` 和 `compose/`。不 reset 整树、不 up Woodpecker。`--finalize` 只接受已通过健康检查的同一事务，成功后原子更新 baseline
-- `cd_compose.py`：`deploy-waves` 比较固定 transaction 的 baseline/release SHA，再按依赖波次 checkout 受影响路径；配置变更对 Nginx、Prometheus、Alertmanager 使用 reload，Loki、Promtail、Grafana 等使用 force-recreate，`promtail-sd` 构建上下文变化执行 build+recreate。无关服务跳过。任意波次失败或总健康检查失败时，所有已触碰波次按 DAG 逆序回滚并 force-recreate。绝不部署 woodpecker-server/agent。
+- `cd_compose.py`：CLI 入口（`deploy` / `rollback --healthcheck` / `mark-healthcheck`）。实现在 `scripts/cd/`：`linux.py`/`docker.py` 是 git 与 compose 原语，`bridge.py` 按 Unit 规格做 reload/recreate/oneshot（不写死服务名），`catalog.py` 是本仓库的单元和波次，`orchestrate.py` 管事务和 DAG。`deploy` 比较固定 transaction 的 baseline/release SHA，再按依赖波次 checkout 受影响路径；可 `deploy nginx prometheus` 或 `deploy --wave alerting` 收窄范围。配置变更对 Nginx、Prometheus、Alertmanager 使用 reload，Loki、Promtail、Grafana 等使用 force-recreate，`promtail-sd` 构建上下文变化执行 build+recreate。无关服务跳过。任意波次失败或总健康检查失败时，所有已触碰波次按 DAG 逆序回滚并 force-recreate。绝不部署 woodpecker-server/agent。旧写法 `deploy-waves`、`healthcheck-rollback`、单独单元名仍可用。
 
 业务 Compose 由根文件通过 `include` 聚合，按依赖组拆在 `compose/` 下；Woodpecker 保持独立，不进入 include：
 - `compose/core.yml`：gitea、nginx
@@ -32,7 +32,8 @@ CI / CD 脚本（进仓库、由 Woodpecker 用 infra-python 跑）：
 `docker compose up -d --build promtail-sd`
 
 本机试跑（动作 dry-run 不需要本机存在外置 baseline）：
-`python scripts/cd_compose.py nginx --dry-run`
+`python scripts/cd_compose.py deploy nginx --dry-run`
+`python scripts/cd_compose.py deploy --dry-run`
 `python scripts/host_apply.py --dry-run --sha <40位SHA>`
 
 ECS 初始化（合并后由运维步骤执行，不进 Git）：
